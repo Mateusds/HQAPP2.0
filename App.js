@@ -1,116 +1,132 @@
-import React, { useEffect, useState } from 'react';
+import { StatusBar } from 'expo-status-bar';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createStackNavigator } from '@react-navigation/stack'; // Stack Navigator
-import { Ionicons } from '@expo/vector-icons';
-import { getAuth } from 'firebase/auth'; // Importando o Firebase Auth
-
-// Importando as telas
+import Icon from 'react-native-vector-icons/FontAwesome'; 
+import * as Notifications from 'expo-notifications';
 import SplashScreen from './components/SplashScreen';
 import HomeScreen from './components/HomeScreen';
 import LoginScreen from './components/LoginScreen';
 import ProgressoScreen from './components/ProgressoScreen';
-import FavoritosScreen from './components/FavoritosScreen';
+import FavoritosScreen from   './components/FavoritosScreen';
 import ConfiguracoesScreen from './components/ConfiguracoesScreen';
 import LeituraHqScreen from './components/LeituraHqScreen';
-import CadastroScreen from './components/CadastroScreen'; 
+import CadastroScreen from './components/CadastroScreen';
 import InserirHQScreen from './components/InserirHQScreen';
 
-// Criando o Stack Navigator
-const Stack = createStackNavigator();
+const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
+function TabNavigator() {
+  return (
+    <Tab.Navigator screenOptions={{ headerShown: false }}>
+      <Tab.Screen 
+        name="Home" 
+        component={HomeScreen} 
+        options={{ 
+          title: 'HQs',
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="home" color={color} size={size} />
+          ),
+        }} 
+      />
+      <Tab.Screen 
+        name="Progresso" 
+        component={ProgressoScreen} 
+        options={{ 
+          title: 'Progresso',
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="book" color={color} size={size} />
+          ),
+        }} 
+      />
+      <Tab.Screen 
+        name="Favoritos" 
+        component={FavoritosScreen} 
+        options={{ 
+          title: 'Favoritos',
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="heart" color={color} size={size} />
+          ),
+        }} 
+      />
+      <Tab.Screen 
+        name="Configuracoes" 
+        component={ConfiguracoesScreen} 
+        options={{ 
+          title: 'Configurações',
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="cog" color={color} size={size} />
+          ),
+        }} 
+      />
+    </Tab.Navigator>
+  );
+}
+
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  async function registerForPushNotifications() {
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
 
-  // Verificando o status de autenticação ao carregar o app
-  useEffect(() => {
-    const auth = getAuth();
-    const unsubscribe = auth.onAuthStateChanged(user => {
-      if (user) {
-        setIsAuthenticated(true); // Se o usuário estiver autenticado
-      } else {
-        setIsAuthenticated(false); // Caso contrário, redireciona para Login
-      }
-    });
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
 
-    return () => unsubscribe(); // Limpeza do ouvinte
-  }, []);
+    if (finalStatus !== 'granted') {
+      alert('Permissão de notificação negada!');
+      return;
+    }
 
-  // Exibe a tela de Splash ao iniciar, e depois redireciona conforme autenticação
-  if (!isAuthenticated) {
-    return (
-      <NavigationContainer>
-        <Stack.Navigator initialRouteName="Splash">
-          <Stack.Screen 
-            name="Splash" 
-            component={SplashScreen} 
-            options={{ headerShown: false }} // Esconde o header na tela de splash
-          />
-          <Stack.Screen 
-            name="Login" 
-            component={LoginScreen} 
-            options={{ headerShown: false }} // Esconde o header na tela de login
-          />
-          <Stack.Screen 
-            name="SignUp" 
-            component={SignupScreen} // Corrigido o nome da tela de cadastro
-            options={{ headerShown: false }} // Esconde o header na tela de cadastro
-          />
-        </Stack.Navigator>
-      </NavigationContainer>
-    );
+    try {
+      const token = await getToken(); // Obter o token usando o serviço
+      console.log(token);
+    } catch (error) {
+      console.error('Erro ao obter o token:', error);
+    }
   }
 
-  // Caso esteja autenticado, exibe a navegação por abas
+  useEffect(() => {
+    registerForPushNotifications();
+  }, []);
+
   return (
     <NavigationContainer>
-      <Tab.Navigator
-        screenOptions={{
-          tabBarStyle: {
-            backgroundColor: '#fff', // Cor de fundo da barra de navegação
-          },
-          tabBarActiveTintColor: '#FF6347', // Cor dos ícones quando ativos
-          tabBarInactiveTintColor: '#A9A9A9', // Cor dos ícones quando inativos
-        }}
-      >
-        <Tab.Screen
-          name="Home"
-          component={HomeScreen}
-          options={{
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="home" size={size} color={color} />
-            ),
-          }}
+      <Stack.Navigator initialRouteName="Splash">
+        <Stack.Screen 
+          name="Splash" 
+          component={SplashScreen} 
+          options={{ headerShown: false }} 
         />
-        <Tab.Screen
-          name="Progress"
-          component={ProgressScreen}
-          options={{
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="bar-chart" size={size} color={color} />
-            ),
-          }}
+        <Stack.Screen 
+          name="Login" 
+          component={LoginScreen} 
+          options={{ headerShown: false }} 
         />
-        <Tab.Screen
-          name="Favorites"
-          component={FavoritesScreen}
-          options={{
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="heart" size={size} color={color} />
-            ),
-          }}
+        <Stack.Screen 
+          name="Home" 
+          component={TabNavigator} 
+          options={{ headerShown: false }} 
         />
-        <Tab.Screen
-          name="Settings"
-          component={SettingsScreen}
-          options={{
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="settings" size={size} color={color} />
-            ),
-          }}
+        <Stack.Screen 
+          name="LeituraHqScreen" 
+          component={LeituraHqScreen} 
+          options={{ headerShown: false }} 
         />
-      </Tab.Navigator>
+        <Stack.Screen 
+          name="Cadastro" 
+          component={CadastroScreen} 
+          options={{ title: 'Cadastro' }} 
+        />
+        <Stack.Screen 
+          name="InserirHQ" 
+          component={InserirHQScreen} 
+          options={{ title: 'Adicionar HQ' }} 
+        />
+      </Stack.Navigator>
+      <StatusBar style="auto" />
     </NavigationContainer>
   );
 }
